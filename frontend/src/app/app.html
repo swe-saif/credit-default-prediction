@@ -1,0 +1,70 @@
+<main class="shell">
+  <header>
+    <h1>Credit Default Risk Prediction</h1>
+    <p class="subtitle">
+      Home Credit data · {{ model.name }} on {{ model.inputs }} inputs · test ROC-AUC {{ model.rocAuc }}
+    </p>
+  </header>
+
+  @if (deployedStatic) {
+    <aside class="notice">
+      Static GitHub Pages demo. The form is shown, but predictions need the Flask API, which runs only on a local
+      machine. Clone the repository and start Flask and Angular to get predictions.
+    </aside>
+  }
+
+  <form (ngSubmit)="submit()">
+    <div class="form-head">
+      <h2>Applicant inputs ({{ fields.length }})</h2>
+      <div class="samples">
+        @for (sample of samples; track sample.name) {
+          <button type="button" class="secondary" (click)="fillSample(sample)">{{ sample.name }}</button>
+        }
+      </div>
+    </div>
+
+    <div class="grid">
+      @for (field of fields; track field.name) {
+        <label>
+          <span>
+            {{ field.label }}
+            @if (!field.required) {
+              <em>optional</em>
+            }
+          </span>
+          @if (field.kind === 'number') {
+            <input type="number" step="any" [name]="field.name" [(ngModel)]="values[field.name]"
+              [required]="field.required" />
+          } @else {
+            <select [name]="field.name" [(ngModel)]="values[field.name]" [required]="field.required">
+              <option [ngValue]="null">Select a value</option>
+              @for (option of field.options ?? []; track option) {
+                <option [ngValue]="option">{{ option }}</option>
+              }
+            </select>
+          }
+          <small>{{ field.name }}</small>
+        </label>
+      }
+    </div>
+
+    <button type="submit" [disabled]="loading() || deployedStatic">
+      {{ loading() ? 'Predicting…' : 'Run local prediction' }}
+    </button>
+  </form>
+
+  @if (error()) {
+    <p class="error" role="alert">{{ error() }}</p>
+  }
+
+  @if (result(); as r) {
+    <section class="result" [class.high]="r.prediction === 1" aria-live="polite">
+      <h2>{{ r.label }}</h2>
+      <p>
+        Probability of default: <strong>{{ r.probability * 100 | number: '1.1-1' }}%</strong>
+        (flagged at {{ r.threshold * 100 | number: '1.1-1' }}% or above)
+      </p>
+      <p class="disclaimer">{{ r.disclaimer }}</p>
+    </section>
+  }
+</main>
