@@ -1,0 +1,166 @@
+{
+  "features": [
+    "EXT_SOURCE_3",
+    "EXT_SOURCE_2",
+    "EXT_SOURCE_1",
+    "DAYS_EMPLOYED",
+    "DAYS_BIRTH",
+    "AMT_CREDIT",
+    "AMT_GOODS_PRICE",
+    "AMT_ANNUITY",
+    "NAME_EDUCATION_TYPE",
+    "DAYS_ID_PUBLISH",
+    "BUREAU_DAYS_CREDIT_MAX",
+    "BUREAU_AMT_CREDIT_SUM_DEBT_MEAN",
+    "OWN_CAR_AGE",
+    "BUREAU_DAYS_CREDIT_ENDDATE_MAX",
+    "BUREAU_AMT_CREDIT_MAX_OVERDUE_SUM"
+  ],
+  "threshold": 0.13780488800556775,
+  "test": {
+    "roc_auc": 0.7527990460799976,
+    "pr_auc": 0.24522733663613447,
+    "threshold": 0.1378,
+    "accuracy": 0.832365900850365,
+    "precision": 0.2279344395805762,
+    "recall": 0.45095669687814705,
+    "f1": 0.3028130916959697,
+    "confusion_matrix": [
+      [
+        48954,
+        7584
+      ],
+      [
+        2726,
+        2239
+      ]
+    ]
+  },
+  "schema": [
+    {
+      "name": "EXT_SOURCE_3",
+      "label": "External credit score 3 (0 to 1)",
+      "required": false,
+      "kind": "number",
+      "min": 0.0005272652387098817,
+      "max": 0.8960095494948396
+    },
+    {
+      "name": "EXT_SOURCE_2",
+      "label": "External credit score 2 (0 to 1)",
+      "required": true,
+      "kind": "number",
+      "min": 8.173616518884397e-08,
+      "max": 0.8549996664047012
+    },
+    {
+      "name": "EXT_SOURCE_1",
+      "label": "External credit score 1 (0 to 1)",
+      "required": false,
+      "kind": "number",
+      "min": 0.014568132412445587,
+      "max": 0.9516239622079844
+    },
+    {
+      "name": "DAYS_EMPLOYED",
+      "label": "Days employed (negative; 365243 = not employed)",
+      "required": true,
+      "kind": "number",
+      "min": -17912.0,
+      "max": 365243.0
+    },
+    {
+      "name": "DAYS_BIRTH",
+      "label": "Age in days (negative, e.g. -12000 = 33 years)",
+      "required": true,
+      "kind": "number",
+      "min": -25229.0,
+      "max": -7489.0
+    },
+    {
+      "name": "AMT_CREDIT",
+      "label": "Loan amount",
+      "required": true,
+      "kind": "number",
+      "min": 45000.0,
+      "max": 4050000.0
+    },
+    {
+      "name": "AMT_GOODS_PRICE",
+      "label": "Price of the goods financed",
+      "required": true,
+      "kind": "number",
+      "min": 40500.0,
+      "max": 4050000.0
+    },
+    {
+      "name": "AMT_ANNUITY",
+      "label": "Loan annuity (regular payment)",
+      "required": true,
+      "kind": "number",
+      "min": 1615.5,
+      "max": 225000.0
+    },
+    {
+      "name": "NAME_EDUCATION_TYPE",
+      "label": "Education level",
+      "required": true,
+      "kind": "category",
+      "options": [
+        "Academic degree",
+        "Higher education",
+        "Incomplete higher",
+        "Lower secondary",
+        "Secondary / secondary special"
+      ]
+    },
+    {
+      "name": "DAYS_ID_PUBLISH",
+      "label": "Days since ID document was issued (negative)",
+      "required": true,
+      "kind": "number",
+      "min": -7197.0,
+      "max": 0.0
+    },
+    {
+      "name": "BUREAU_DAYS_CREDIT_MAX",
+      "label": "Days since newest credit-bureau loan was opened (negative)",
+      "required": false,
+      "kind": "number",
+      "min": -2922.0,
+      "max": 0.0
+    },
+    {
+      "name": "BUREAU_AMT_CREDIT_SUM_DEBT_MEAN",
+      "label": "Average current debt per credit-bureau loan",
+      "required": false,
+      "kind": "number",
+      "min": -1083614.67,
+      "max": 37610901.9
+    },
+    {
+      "name": "OWN_CAR_AGE",
+      "label": "Age of own car in years (blank if no car)",
+      "required": false,
+      "kind": "number",
+      "min": 0.0,
+      "max": 91.0
+    },
+    {
+      "name": "BUREAU_DAYS_CREDIT_ENDDATE_MAX",
+      "label": "Days until latest credit-bureau loan ends",
+      "required": false,
+      "kind": "number",
+      "min": -41875.0,
+      "max": 31199.0
+    },
+    {
+      "name": "BUREAU_AMT_CREDIT_MAX_OVERDUE_SUM",
+      "label": "Total of maximum overdue amounts on credit-bureau loans",
+      "required": false,
+      "kind": "number",
+      "min": 0.0,
+      "max": 115987185.0
+    }
+  ]
+}

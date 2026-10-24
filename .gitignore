@@ -1,16 +1,28 @@
 # Python
 .venv/
 __pycache__/
-*.pyc
+*.py[cod]
+.pytest_cache/
+.env
+.env.*
 
-# Data (Home Credit CSVs, ~360 MB) - download separately, never commit
+# Data (Home Credit CSVs, ~360 MB) - download from Kaggle, never commit
 *.csv
+# ...except the two synthetic sample applicants used by the API tests
+!data/sample_inputs.csv
 
-# Trained models are large binaries - keep them out of git
-models/
+# Research models are large binaries - keep them out of git
+/models/
 *.pkl
 *.joblib
 *.zip
+# ...except the small deployed model (~150 KB) that the API and the CI tests load
+!backend/models/model_bundle.joblib
+
+# Angular dependencies and build output
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
 
 # Previous Colab implementation - kept locally, not part of this project
 Lab2_DO.ipynb
@@ -21,3 +33,7 @@ credit_default_models/
 # Run logs (the results themselves are in reports/*.json)
 *.log
 reports/*_log.txt
+
+# OS files
+.DS_Store
+Thumbs.db
