@@ -1,0 +1,11 @@
+# Flask API runtime: versions must match the ones the model bundle was saved with.
+flask==3.1.3
+joblib==1.6.0
+lightgbm==4.7.0
+numpy==2.5.4
+pandas==3.1.0
+scikit-learn==1.9.1
+
+# Testing
+pytest==9.1.1
+requests==2.34.2
