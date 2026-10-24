@@ -1,0 +1,23 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Data (Home Credit CSVs, ~360 MB) - download separately, never commit
+*.csv
+
+# Trained models are large binaries - keep them out of git
+models/
+*.pkl
+*.joblib
+*.zip
+
+# Previous Colab implementation - kept locally, not part of this project
+Lab2_DO.ipynb
+lab2_do.py
+info.md
+credit_default_models/
+
+# Run logs (the results themselves are in reports/*.json)
+*.log
+reports/*_log.txt

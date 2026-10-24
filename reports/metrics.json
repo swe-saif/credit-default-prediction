@@ -1,0 +1,150 @@
+{
+  "dataset": {
+    "applicants": 307511,
+    "input_columns": 186,
+    "default_rate": 0.08072881945686496,
+    "split": {
+      "train": 196806,
+      "validation": 49202,
+      "test": 61503
+    },
+    "random_state": 42
+  },
+  "baseline_accuracy_always_non_default": 0.9192722306228964,
+  "models": {
+    "random_forest": {
+      "threshold": 0.17,
+      "train_seconds": 40.9,
+      "test": {
+        "roc_auc": 0.7100983405825995,
+        "pr_auc": 0.20432781387267265,
+        "at_tuned_threshold": {
+          "threshold": 0.17,
+          "accuracy": 0.8345934344666114,
+          "precision": 0.21124417831004658,
+          "recall": 0.38368580060422963,
+          "f1": 0.2724737180862476,
+          "confusion_matrix": [
+            [
+              49425,
+              7113
+            ],
+            [
+              3060,
+              1905
+            ]
+          ]
+        },
+        "at_0.5": {
+          "threshold": 0.5,
+          "accuracy": 0.9193697868396663,
+          "precision": 0.6071428571428571,
+          "recall": 0.0034239677744209466,
+          "f1": 0.00680953334668536,
+          "confusion_matrix": [
+            [
+              56527,
+              11
+            ],
+            [
+              4948,
+              17
+            ]
+          ]
+        }
+      }
+    },
+    "lightgbm": {
+      "threshold": 0.1682025052507436,
+      "train_seconds": 7.3,
+      "test": {
+        "roc_auc": 0.7642406000445227,
+        "pr_auc": 0.2587926831442959,
+        "at_tuned_threshold": {
+          "threshold": 0.1682,
+          "accuracy": 0.8668032453701445,
+          "precision": 0.2699928724162509,
+          "recall": 0.38147029204431016,
+          "f1": 0.31619365609348915,
+          "confusion_matrix": [
+            [
+              51417,
+              5121
+            ],
+            [
+              3071,
+              1894
+            ]
+          ]
+        },
+        "at_0.5": {
+          "threshold": 0.5,
+          "accuracy": 0.9199713835097475,
+          "precision": 0.6009389671361502,
+          "recall": 0.025780463242698892,
+          "f1": 0.04943993820007725,
+          "confusion_matrix": [
+            [
+              56453,
+              85
+            ],
+            [
+              4837,
+              128
+            ]
+          ]
+        }
+      }
+    },
+    "xgboost": {
+      "threshold": 0.16051915287971497,
+      "train_seconds": 8.8,
+      "test": {
+        "roc_auc": 0.7514505211887363,
+        "pr_auc": 0.23174806982614837,
+        "at_tuned_threshold": {
+          "threshold": 0.1605,
+          "accuracy": 0.8516169942929613,
+          "precision": 0.24126352443725904,
+          "recall": 0.3907351460221551,
+          "f1": 0.29832385053052435,
+          "confusion_matrix": [
+            [
+              50437,
+              6101
+            ],
+            [
+              3025,
+              1940
+            ]
+          ]
+        },
+        "at_0.5": {
+          "threshold": 0.5,
+          "accuracy": 0.9189145244947401,
+          "precision": 0.47649572649572647,
+          "recall": 0.04491440080563948,
+          "f1": 0.08209092582367017,
+          "confusion_matrix": [
+            [
+              56293,
+              245
+            ],
+            [
+              4742,
+              223
+            ]
+          ]
+        }
+      }
+    }
+  },
+  "environment": {
+    "python": "3.14.7",
+    "pandas": "3.1.0",
+    "scikit-learn": "1.9.1",
+    "lightgbm": "4.7.0",
+    "xgboost": "3.4.1"
+  },
+  "runtime_seconds": 64.3
+}
