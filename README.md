@@ -1,36 +1,148 @@
 # Credit default prediction (Home Credit)
 
-A replication of *Predicting Credit Paying Ability With Machine Learning Algorithms* (Febriyanti & Izzalqurny, 2023), which reported Random Forest and LightGBM as its best models, extended with XGBoost. The original Colab work found a data-leakage problem; this version fixes it and runs as plain, reproducible Python scripts.
+[![CI](https://github.com/swe-saif/credit-default-prediction/actions/workflows/ci.yml/badge.svg)](https://github.com/swe-saif/credit-default-prediction/actions/workflows/ci.yml)
+[![Deploy to GitHub Pages](https://github.com/swe-saif/credit-default-prediction/actions/workflows/deploy.yml/badge.svg)](https://github.com/swe-saif/credit-default-prediction/actions/workflows/deploy.yml)
+
+A replication of *Predicting Credit Paying Ability With Machine Learning Algorithms* (Febriyanti & Izzalqurny, 2023), extended with XGBoost, a data-leakage fix, and a full-stack application: a Flask API serving the model, an Angular form, and GitHub Actions for CI and deployment to GitHub Pages.
+
+**Live demo (static):** https://swe-saif.github.io/credit-default-prediction/. GitHub Pages hosts only the Angular page; predictions need the Flask API running locally (see [Run the application](#run-the-application-locally)).
+
+## Architecture
+
+```
+Browser: Angular form (http://localhost:4200)
+   |  POST /api/predict (JSON)
+   v
+Angular dev proxy  ->  Flask API (http://127.0.0.1:5000)
+                         validation -> saved preprocessing -> LightGBM
+   <-  JSON: prediction, probability, threshold
+
+git push -> GitHub Actions CI (API tests + Angular tests and build)
+         -> on success: GitHub Pages deployment (static Angular only)
+```
 
 ## Project layout
 
 ```
-credit_risk/           the code
-  config.py            paths and settings (seed, split sizes)
-  data.py              load the CSVs, summarise bureau records per applicant, join
-  pipeline.py          preprocessing + the three models, as one scikit-learn Pipeline each
-  evaluate.py          metrics and decision-threshold choice
-  plots.py             report figures
-  train.py             main experiment
-  leakage_check.py     re-runs the original 1.5M-row setup to measure the leakage
-reports/               metrics.json, leakage_check.json, figures/
-models/                trained pipelines (created by train.py, not committed)
-requirements.txt       pinned library versions
+backend/                Flask API
+  app.py                GET /health, POST /predict
+  models/model_bundle.joblib   deployed model: pipeline + input schema + threshold (~150 KB)
+  tests/                automated tests (pytest)
+  make_payload.py, test_pipeline.py, test_api.py, test_payload.json   manual checks
+  requirements.txt      pinned API dependencies
+frontend/               Angular 22 app
+  src/app/app.ts|html|css      the prediction form
+  src/app/feature-schema.ts    input schema, generated from the model bundle
+  src/app/prediction.service.ts
+  proxy.conf.json       forwards /api/* to Flask during development
+credit_risk/            research and model-building code
+  data.py, features.py, pipeline.py, evaluate.py, plots.py
+  train.py              research experiment (3 models, 186 inputs)
+  leakage_check.py      re-runs the original 1.5M-row setup to measure the leakage
+  export_model.py       trains and exports the deployed 15-input model
+data/sample_inputs.csv  two synthetic applicants (not real people)
+reports/                metrics.json, leakage_check.json, deploy_model.json, figures/
+docs/environment.txt    tool and library versions
+.github/workflows/      ci.yml (CI), deploy.yml (CD to GitHub Pages)
+requirements.txt        pinned research/training dependencies
 ```
 
-## How to run
+## Run the application locally
 
-Needs Python 3.14 and the two Kaggle files `application_train.csv` and `bureau.csv` in the project folder (or point `CREDIT_DATA_DIR` at another folder).
+Needs Python 3.14 and Node.js 22+. Commands are for PowerShell in VS Code, run from the project root.
 
-```bash
-python -m venv .venv
-.venv\Scripts\activate          # Windows; on Linux/macOS: source .venv/bin/activate
-pip install -r requirements.txt
-python -m credit_risk.train            # ~1 minute
+**One-time setup**
+
+```powershell
+py -3.14 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt -r backend/requirements.txt
+cd frontend; npm ci; cd ..
+```
+
+**Terminal 1: Flask API** (keep running)
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+python backend\app.py
+```
+
+**Terminal 2: Angular** (keep running; the proxy is configured in `angular.json`)
+
+```powershell
+cd frontend
+npm start
+```
+
+Open http://localhost:4200, click **Typical applicant** or **Higher-risk profile** to fill the form, then **Run local prediction**.
+
+**Terminal 3: checks**
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+python -m pytest                       # 9 API tests
+python backend\test_pipeline.py        # model loads and reproduces the training-time answer
+python backend\test_api.py             # live request to the running Flask server
+curl.exe --noproxy "*" -i http://localhost:4200/api/health   # Angular proxy -> Flask
+cd frontend; npx ng test --watch=false # 3 frontend tests
+```
+
+## The API
+
+| Endpoint | Description |
+|---|---|
+| `GET /health` | `{"status": "ok", "features": 15, "task": "classification", "model_version": "1.0"}` |
+| `POST /predict` | JSON object with all 15 inputs (optional ones may be `null`) |
+
+Example response:
+
+```json
+{"prediction": 1, "label": "Higher default risk", "probability": 0.1779, "probabilities": [0.8221, 0.1779],
+ "threshold": 0.1378, "task": "classification", "model_version": "1.0",
+ "disclaimer": "Research/teaching prototype only. Not a lending decision."}
+```
+
+Inputs are checked against the schema saved with the model: unknown or missing keys, blank required inputs, numbers outside the training range and unknown categories return HTTP 400 with the reason.
+
+## The deployed model
+
+The research model uses 186 inputs, too many for a form. `credit_risk/export_model.py` keeps the 15 most important inputs (by LightGBM gain), leaving out gender because it is a protected attribute in lending, and retrains the same pipeline on the same training split.
+
+| Test set (61,503 applicants) | Deployed LightGBM, 15 inputs | Research LightGBM, 186 inputs |
+|---|---|---|
+| ROC-AUC | 0.753 | 0.764 |
+| PR-AUC | 0.245 | 0.259 |
+| Threshold (chosen on validation) | 0.14 | 0.17 |
+| Precision | 22.8% | 27.0% |
+| Recall | 45.1% | 38.1% |
+| F1 | 30.3% | 31.6% |
+
+8 inputs are required; 7 may be left blank because they are often missing in real applications (no car, no credit-bureau history, missing external scores), and the pipeline fills them as it did in training. The form's schema in `frontend/src/app/feature-schema.ts` is generated from the same bundle, so the API and the form cannot drift apart. Full numbers: [reports/deploy_model.json](reports/deploy_model.json).
+
+To rebuild it (needs the Kaggle CSVs in the project root): `python -m credit_risk.export_model`, then `python backend/make_payload.py`.
+
+## CI/CD
+
+| Workflow | Trigger | What it does |
+|---|---|---|
+| [ci.yml](.github/workflows/ci.yml) | push / pull request to `main` | **Backend:** install pinned dependencies, compile-check Python, run the 9 API tests against the committed model. **Frontend:** `npm ci`, unit tests, production build, upload the build as an artifact |
+| [deploy.yml](.github/workflows/deploy.yml) | CI finished successfully on a push to `main` | Builds the exact commit CI tested with `--base-href /<repo>/` and deploys it to GitHub Pages |
+
+One-time GitHub setting: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+
+---
+
+## Research: reproducing the experiments
+
+Needs the two Kaggle files `application_train.csv` and `bureau.csv` in the project folder (or point `CREDIT_DATA_DIR` at another folder).
+
+```powershell
+python -m credit_risk.train            # ~1 minute: 3 models on 186 inputs
 python -m credit_risk.leakage_check    # ~10 minutes, optional
+python -m credit_risk.export_model     # deployed 15-input model
 ```
 
-## What changed from the original notebook, and why
+### What changed from the original notebook, and why
 
 | Original | Problem | Now |
 |---|---|---|
@@ -40,11 +152,11 @@ python -m credit_risk.leakage_check    # ~10 minutes, optional
 | `LabelEncoder` | Crashes on a category it has not seen | `OrdinalEncoder` with unknown categories mapped to -1 |
 | Fixed 0.5 decision threshold | With 8% defaulters almost nobody is flagged (LightGBM recall 3%) | Threshold with the best F1 picked on a validation set; test set used once |
 | Chart numbers typed in by hand | Figures go stale when results change | Figures drawn from the computed results |
-| Colab-only code, unpinned libraries, 807 MB model | Not reproducible outside Colab; too big for git | Plain scripts, pinned `requirements.txt`, compressed model files |
+| Colab-only code, unpinned libraries, 807 MB model | Not reproducible outside Colab; too big for git | Plain scripts, pinned requirements, compressed model files |
 
 Unchanged on purpose: the same two data files, the paper's mean / `Data_Not_Available` imputation, the same three models with the same settings (`n_estimators=100`, `random_state=42`), and the same 80:20 stratified test split. Differences in results therefore come from the data handling, not from new modelling choices.
 
-## Results
+### Results
 
 307,511 applicants, 186 input columns, 8.07% defaulted. Split: 196,806 train / 49,202 validation / 61,503 test.
 
@@ -68,7 +180,7 @@ A model that always predicts "non-default" scores **91.9%** accuracy, so accurac
 
 Figures: [model comparison](reports/figures/model_comparison.png), [ROC curves](reports/figures/roc_curves.png), [confusion matrices](reports/figures/confusion_matrices.png). Full numbers: [reports/metrics.json](reports/metrics.json).
 
-## Leakage check (original 1.5M-row setup)
+### Leakage check (original 1.5M-row setup)
 
 `leakage_check.py` rebuilds the original notebook's data exactly (row-level join, preprocessing on all rows, same models) and evaluates it with two splits of the same 1,509,345 rows:
 
@@ -88,7 +200,7 @@ Figures: [model comparison](reports/figures/model_comparison.png), [ROC curves](
 
 Figure: [leakage check](reports/figures/leakage_check.png). Full numbers: [reports/leakage_check.json](reports/leakage_check.json).
 
-## Comparison with the paper
+### Comparison with the paper
 
 The paper ([Febriyanti & Izzalqurny, 2023](https://jurnal.stiepas.ac.id/index.php/bistek/article/view/296)) evaluates at the default 0.5 threshold. Scored the same way, our fixed pipeline reproduces its results:
 
@@ -118,26 +230,11 @@ Paper values are from its Table 2 and Figure 5; ours are at the 0.5 threshold.
 
 **Conclusion:** under the paper's own evaluation, this replication reproduces its results (accuracy 0.92, recall near 0, label-based AUC about 0.50). Evaluated correctly, ROC-AUC is 0.71–0.76, LightGBM is the best model rather than tied with Random Forest, and lowering the threshold to about 0.17 catches 38–39% of defaulters instead of almost none.
 
-## Using a saved model
-
-Each file in `models/` holds the full pipeline (preprocessing + model), the decision threshold, and the expected input columns:
-
-```python
-import joblib
-from credit_risk import data
-
-bundle = joblib.load("models/lightgbm.joblib")
-rows = data.build_applicant_table(applications, bureau_records)   # same raw format as the Kaggle CSVs
-X = data.to_model_input(rows, bundle["input_columns"])           # fills absent loan-type counts with 0
-prob = bundle["pipeline"].predict_proba(X)[:, 1]
-flag_as_risky = prob >= bundle["threshold"]
-```
-
-Tested on unseen applicants from `application_test.csv`, including applicants with no bureau history; a missing required column raises a clear error.
-
 ## Limitations
 
 - Uses 2 of Home Credit's 7 tables, as the paper did; previous applications and payment history would likely improve results.
 - Model settings are the paper's defaults, not tuned.
 - The threshold maximises F1. A lender would set it from the real cost of a missed defaulter versus a rejected good customer.
 - No fairness or probability-calibration checks yet; not fit for real lending decisions.
+- GitHub Pages is static: the public site cannot run predictions. A public demo would need the Flask API hosted separately behind HTTPS.
+- The Kaggle data may not be redistributed, so it is not in this repository; the sample inputs are synthetic profiles.

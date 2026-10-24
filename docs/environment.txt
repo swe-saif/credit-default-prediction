@@ -1,0 +1,21 @@
+Development environment (recorded 2026-10-25, Windows 10 + VS Code)
+
+git        2.55.0.windows.5
+node       v22.23.2
+npm        10.9.8
+python     3.14.7
+angular    22.2.3 (CLI 22.2.4)
+
+Python packages (.venv):
+  Flask==3.1.3
+  joblib==1.6.0
+  lightgbm==4.7.0
+  matplotlib==3.11.2
+  numpy==2.5.4
+  pandas==3.1.0
+  pytest==9.1.1
+  requests==2.34.2
+  scikit-learn==1.9.1
+  xgboost==3.4.1
+
+CI runners (GitHub Actions): ubuntu-latest, Python 3.14, Node 22
