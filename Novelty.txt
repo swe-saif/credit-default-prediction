@@ -1,0 +1,61 @@
+**Problem and Novelty**
+
+**1. The Problem**
+
+We set out to replicate a 2023 study by Febriyanti and Izzalqurny, which used machine learning to predict whether a loan applicant would default. The study used the Home Credit Default Risk dataset and concluded that Random Forest and LightGBM were the best models, each with 91.88% accuracy.
+
+*Problems in the original study.* When we checked the paper's numbers against its own confusion matrices, several things did not add up:
+
+- The AUC scores were calculated from the models' yes/no answers instead of their probabilities. This makes every model score about 0.50, so the scores say nothing about how well the models separate risky applicants from safe ones.
+- The F1 scores in the results table do not match the confusion matrices.
+- Random Forest and LightGBM have exactly the same confusion matrix, which is practically impossible for two different algorithms. It is likely that one result was reported twice.
+- The 91.88% accuracy looks impressive, but only 8% of applicants default. A model that simply says "no default" for everyone also scores about 92%. The models were in fact catching almost no defaulters.
+- The paper lists 1,048,575 credit-bureau records, which is exactly Excel's row limit. The real file has 1,716,428, so about 39% of the credit history seems to have been lost when the file passed through Excel.
+- The paper does not state its train–test split, model settings or random seed, so its results cannot be reproduced exactly.
+
+*Problems in our first attempt.* Our first implementation followed the paper's method and gave a surprisingly high result: 98.45% accuracy for Random Forest. That was too good to be true, and investigating it revealed a serious mistake.
+
+Each applicant can have many records in the credit-bureau file. Joining the two files directly copied each applicant once per record, up to 116 times, turning 307,511 people into 1.5 million rows. When those rows were split at random into training and test sets, 93.5% of the test rows belonged to people the model had already seen during training. The model was recognising familiar applicants, not predicting new ones. This is called data leakage. When we kept each person entirely in either the training set or the test set, Random Forest's ROC-AUC dropped from 0.994 to 0.712.
+
+There were smaller problems too:
+- Data cleaning used information from the test set.
+- A placeholder value in the employment field was quietly replaced with an average.
+- The code only ran in Google Colab.
+- The saved Random Forest model was 807 MB, far too large to store or share easily.
+
+*The practical problem.* Even after fixing all of this, the research model needs 186 inputs. Nobody can fill in 186 fields to check one loan application, and many of those details are simply unknown for most applicants. The model also used gender, which should not influence lending decisions.
+
+**2. What We Did Differently (Our Novelty)**
+
+We did not invent a new algorithm. Our contribution is to fix the replication properly and then turn the result into something people can actually use.
+
+*A corrected experiment.* We summarised each applicant's credit history into a single row: how many loans they have, how many are still active, total debt and similar figures. This gives one row per person instead of many copies. We split the data before any cleaning, so the test set stayed completely unseen. We also calculated the scores correctly and chose each model's decision threshold on a separate validation set instead of using a fixed 0.5. With these fixes, LightGBM was clearly the best model, with a ROC-AUC of 0.764.
+
+*A new compact model for real use.* This is the main new idea in our work. We ranked all 186 inputs by how much they helped the model and tested smaller sets of the most useful ones. The 15 most useful inputs kept almost all of the model's ability, while needing only 8% of the inputs.
+
+We made three deliberate choices when building this compact model:
+- **We removed gender**, even though it ranked highly, because it is a protected characteristic in lending.
+- **We let users leave seven inputs blank** when they are commonly unknown in real life, such as a second credit score, a car's age, or a credit history the applicant does not have. The model handles blanks the same way it did during training.
+- **We kept everything else the same as the full model**: the same data split, the same cleaning steps and the same LightGBM settings. Any difference in results therefore comes only from using fewer inputs.
+
+We then packaged the model into one small 150 KB file. It holds the model, the list of inputs with their allowed values, and the decision threshold. A Flask web API uses this file to check each request and return a prediction. An Angular web form is built from the same file, so the form always asks for exactly what the model expects. Every code change is tested automatically on GitHub, and the website is published only if the tests pass.
+
+**3. Results**
+
+On 61,503 test applicants the model had never seen, the compact model performed as follows:
+
+- It reached a ROC-AUC of 0.753, against 0.764 for the full 186-input model. That keeps 98.6% of the full model's ability with only 15 inputs.
+- It correctly flagged 45% of the people who later defaulted. With the paper's approach, almost none were flagged.
+- It runs from a 150 KB file instead of 807 MB.
+
+To demonstrate the application without publishing real people's data (which the dataset's licence does not allow), we created two made-up profiles. A typical applicant receives a 6.5% chance of default and is not flagged. A higher-risk profile receives 17.8% and is flagged.
+
+**4. Why It Matters**
+
+This work shows how a published result can look strong while hiding basic evaluation errors, and how an innocent-looking data join can make a model appear almost perfect. It also shows that a model does not need hundreds of inputs to be useful. A small, carefully chosen set of inputs, with a protected attribute removed, can deliver nearly the same performance in a form that a real person could fill in.
+
+**5. Limitations**
+
+- Removing gender does not guarantee fairness, because other inputs such as age could still act as indirect stand-ins for it. Proper fairness testing would be needed before any real use.
+- The decision threshold was chosen to balance precision and recall. A real lender would set it based on the actual cost of approving someone who defaults versus turning away a good customer.
+- The public website can only display the form. Predictions run on a local computer, because GitHub Pages cannot host the Python model.
